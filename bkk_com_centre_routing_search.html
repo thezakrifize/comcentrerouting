@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BKK COM Centre Routing Search</title>
+<style>
+:root{--bg:#f7fafc;--card:#ffffff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--main:#023047;--accent:#219ebc;--warn:#ffb703;--soft:#e0f2fe;--altn:#fff7ed;}
+*{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Tahoma,sans-serif;background:linear-gradient(180deg,#eef8ff 0%,var(--bg) 42%);color:var(--ink)}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 18px 52px}
+.hero{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:24px;box-shadow:0 18px 50px rgba(2,48,71,.08)}
+h1{margin:0 0 6px;font-size:clamp(26px,4vw,42px);letter-spacing:-.03em;color:var(--main)}
+.sub{color:var(--muted);margin:0 0 20px;font-size:15px;line-height:1.55}
+.searchbar{display:grid;grid-template-columns:1fr auto;gap:12px;margin-top:16px}
+input{width:100%;font-size:22px;padding:16px 18px;border-radius:18px;border:2px solid #bfdbfe;outline:none;background:#fff;letter-spacing:.04em;text-transform:uppercase}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(33,158,188,.14)}
+button{border:0;border-radius:18px;background:var(--main);color:white;font-weight:800;padding:0 24px;font-size:16px;cursor:pointer}
+button:hover{background:#03506f}
+.hint{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 11px;font-size:13px;color:#334155;cursor:pointer}
+.chip:hover{background:var(--soft);border-color:#7dd3fc}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
+.stat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px}
+.stat b{display:block;font-size:26px;color:var(--accent)} .stat span{color:var(--muted);font-size:13px}
+.resultHead{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:24px 0 12px}
+.resultHead h2{margin:0;color:var(--main)}
+.badge{font-size:13px;background:#e0f2fe;color:#075985;padding:7px 10px;border-radius:999px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:0 12px 32px rgba(15,23,42,.06)}
+.card.primary{border-color:#38bdf8;box-shadow:0 12px 36px rgba(33,158,188,.12)}
+.route{font-size:34px;font-weight:900;color:var(--main);letter-spacing:.04em;line-height:1}
+.grid{display:grid;grid-template-columns:110px 1fr;gap:8px;margin-top:14px;font-size:14px}
+.label{color:var(--muted)} .value{font-weight:800}
+.mainpill{display:inline-block;background:var(--soft);color:#075985;padding:6px 10px;border-radius:12px;font-weight:900}
+.altnpill{display:inline-block;background:var(--altn);color:#9a3412;padding:6px 10px;border-radius:12px;font-weight:900}
+.note{margin-top:12px;color:#475569;font-size:13px;line-height:1.45;background:#f8fafc;border-radius:14px;padding:10px}
+table{width:100%;border-collapse:separate;border-spacing:0;background:white;border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:18px;font-size:13px}
+th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top} th{background:var(--main);color:white;position:sticky;top:0} tr:last-child td{border-bottom:0} tr:hover td{background:#f8fafc}
+.empty{background:white;border:1px dashed #94a3b8;border-radius:22px;padding:24px;text-align:center;color:#64748b}
+.footer{margin-top:18px;color:#64748b;font-size:12px;line-height:1.5}
+@media(max-width:720px){.searchbar{grid-template-columns:1fr}button{padding:14px}.summary{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="hero">
+    <h1>BKK COM Centre Routing Search</h1>
+    <p class="sub">ค้นหา Routing แล้วดูทันทีว่า <b>ต้องขอจากใครเป็นหลัก</b> และ <b>ALTN คือใคร</b> — รองรับเงื่อนไข Except เช่น U except UG/UK, WB except WBA/WBS</p>
+    <div class="searchbar">
+      <input id="q" placeholder="พิมพ์ Routing เช่น B, VH, UG, WBA, VV" autocomplete="off" autofocus>
+      <button onclick="runSearch()">Search</button>
+    </div>
+    <div class="hint" id="chips"></div>
+  </section>
+  <div class="summary">
+    <div class="stat"><b>10</b><span>Main MTA ในตาราง</span></div>
+    <div class="stat"><b>33</b><span>Routing entries</span></div>
+    <div class="stat"><b>5</b><span>ALTN stations</span></div>
+  </div>
+  <div class="resultHead"><h2 id="title">ผลการค้นหา</h2><span class="badge" id="count">พร้อมค้นหา</span></div>
+  <div id="results" class="cards"></div>
+  <div class="resultHead"><h2>Routing Table ทั้งหมด</h2><span class="badge">Source: uploaded Excel</span></div>
+  <table id="allTable"><thead><tr><th>Routing</th><th>Main / ขอจาก</th><th>Column</th><th>ALTN</th><th>Rule</th></tr></thead><tbody></tbody></table>
+  <div class="footer">Logic: ระบบจับคู่แบบ prefix โดยให้ route ที่เฉพาะกว่าอยู่บนสุด เช่น WBA จะชนะ WB; ถ้า route มี Except ระบบจะไม่จับคู่ routing ที่ถูกยกเว้นกับ main route นั้น</div>
+</div>
+<script>
+const data = [{"mta": "VHHH", "route_col": "Routing 1", "route_raw": "B", "altn": "WSSS"}, {"mta": "VHHH", "route_col": "Routing 2", "route_raw": "C", "altn": "WSSS"}, {"mta": "VHHH", "route_col": "Routing 3", "route_raw": "K", "altn": "WSSS"}, {"mta": "VHHH", "route_col": "Routing 4", "route_raw": "M", "altn": "WSSS"}, {"mta": "VHHH", "route_col": "Routing 5", "route_raw": "P", "altn": "WSSS"}, {"mta": "VHHH", "route_col": "Routing 6", "route_raw": "R", "altn": "WSSS"}, {"mta": "VHHH", "route_col": "Routing 7", "route_raw": "S", "altn": "WSSS"}, {"mta": "VHHH", "route_col": "Routing 8", "route_raw": "T", "altn": "WSSS"}, {"mta": "VHHH", "route_col": "Routing 9", "route_raw": "VH", "altn": "WSSS"}, {"mta": "VHHH", "route_col": "Routing 10", "route_raw": "VM", "altn": "WSSS"}, {"mta": "VHHH", "route_col": "Routing 1", "route_raw": "U (Except UG UK)", "altn": "VABB"}, {"mta": "WSSS", "route_col": "Routing 1", "route_raw": "A", "altn": "WMKK"}, {"mta": "WSSS", "route_col": "Routing 2", "route_raw": "N", "altn": "WMKK"}, {"mta": "WSSS", "route_col": "Routing 3", "route_raw": "O (Except OA, OP)", "altn": "WMKK"}, {"mta": "WSSS", "route_col": "Routing 4", "route_raw": "VC", "altn": "WMKK"}, {"mta": "WSSS", "route_col": "Routing 5", "route_raw": "VR", "altn": "WMKK"}, {"mta": "WSSS", "route_col": "Routing 6", "route_raw": "W", "altn": "WMKK"}, {"mta": "WSSS", "route_col": "Routing 7", "route_raw": "WBA", "altn": "WMKK"}, {"mta": "WSSS", "route_col": "Routing 8", "route_raw": "WBS", "altn": "WMKK"}, {"mta": "WSSS", "route_col": "Routing 9", "route_raw": "Y", "altn": "WMKK"}, {"mta": "WSSS", "route_col": "Routing 1", "route_raw": "Z", "altn": "VABB"}, {"mta": "VABB", "route_col": "Routing 1", "route_raw": "VD", "altn": "WSSS"}, {"mta": "ZBBB", "route_col": "Routing 1", "route_raw": "E", "altn": "VHHH"}, {"mta": "ZBBB", "route_col": "Routing 2", "route_raw": "L", "altn": "VHHH"}, {"mta": "ZBBB", "route_col": "Routing 3", "route_raw": "UG", "altn": "VHHH"}, {"mta": "ZBBB", "route_col": "Routing 4", "route_raw": "UK", "altn": "VHHH"}, {"mta": "VDPP", "route_col": "Routing 1", "route_raw": "VV", "altn": "VVTS"}, {"mta": "LIII", "route_col": "Routing 1", "route_raw": "VL", "altn": "WSSS"}, {"mta": "VVTS", "route_col": "Routing 1", "route_raw": "WB (Except WBA, WBS)", "altn": "VHHH"}, {"mta": "VVTS", "route_col": "Routing 2", "route_raw": "WM", "altn": "VHHH"}, {"mta": "VLVT", "route_col": "Routing 1", "route_raw": "VG", "altn": "VVTS"}, {"mta": "WMKK", "route_col": "Routing 1", "route_raw": "VY", "altn": "WSSS"}, {"mta": "VGHS", "route_col": "Routing 1", "route_raw": "VQ", "altn": "VABB"}];
+function parseRule(raw) {
+  const m = raw.match(/^(.+?)\s*\(Except\s+(.+?)\)$/i);
+  if (!m) return {base: raw.trim().toUpperCase(), exceptions: []};
+  const base = m[1].trim().toUpperCase();
+  const exceptions = m[2].split(/[ ,/]+/).map(x=>x.trim().toUpperCase()).filter(Boolean);
+  return {base, exceptions};
+}
+function matches(q, item) {
+  const rule = parseRule(item.route_raw);
+  const excluded = rule.exceptions.some(ex => q === ex || q.startsWith(ex));
+  if (excluded) return false;
+  return q === rule.base || q.startsWith(rule.base);
+}
+function ruleNote(item, q='') {
+  const r = parseRule(item.route_raw);
+  const ex = r.exceptions.length ? ` ยกเว้น ${r.exceptions.join(', ')}` : '';
+  return `จับคู่กับ ${r.base}${ex}`;
+}
+function card(item, idx, q) {
+  const cls = idx===0 ? 'card primary' : 'card';
+  return `<div class="${cls}">
+    <div class="route">${escapeHtml(parseRule(item.route_raw).base)}</div>
+    <div class="grid">
+      <div class="label">ขอจากหลัก</div><div class="value"><span class="mainpill">${escapeHtml(item.mta)}</span></div>
+      <div class="label">ALTN</div><div class="value"><span class="altnpill">${escapeHtml(item.altn || '-')}</span></div>
+      <div class="label">ตำแหน่ง</div><div class="value">${escapeHtml(item.route_col)}</div>
+      <div class="label">ในตาราง</div><div class="value">${escapeHtml(item.route_raw)}</div>
+    </div>
+    <div class="note">ถ้าต้องการ Routing <b>${escapeHtml(q || parseRule(item.route_raw).base)}</b> → ขอจาก <b>${escapeHtml(item.mta)}</b> เป็นหลัก; ถ้าหลักใช้ไม่ได้ให้ดู/ประสานผ่าน ALTN <b>${escapeHtml(item.altn || '-')}</b><br>${escapeHtml(ruleNote(item,q))}</div>
+  </div>`;
+}
+function runSearch() {
+  const q = document.getElementById('q').value.trim().toUpperCase();
+  const res = document.getElementById('results');
+  const title = document.getElementById('title');
+  const count = document.getElementById('count');
+  if (!q) {
+    title.textContent = 'ผลการค้นหา'; count.textContent = 'พิมพ์ Routing เพื่อค้นหา';
+    res.innerHTML = `<div class="empty">ลองพิมพ์เช่น B, VH, UG, WBA, VV</div>`; return;
+  }
+  let out = data.filter(x => matches(q, x)).sort((a,b)=>parseRule(b.route_raw).base.length-parseRule(a.route_raw).base.length || a.mta.localeCompare(b.mta));
+  title.textContent = `ผลการค้นหา: ${q}`;
+  count.textContent = `${out.length} match`;
+  if (!out.length) {
+    res.innerHTML = `<div class="empty">ไม่พบ Routing <b>${escapeHtml(q)}</b> ในตารางนี้</div>`; return;
+  }
+  res.innerHTML = out.map((x,i)=>card(x,i,q)).join('');
+}
+function fillTable() {
+  const tbody = document.querySelector('#allTable tbody');
+  tbody.innerHTML = data.map(x => `<tr><td><b>${escapeHtml(parseRule(x.route_raw).base)}</b></td><td>${escapeHtml(x.mta)}</td><td>${escapeHtml(x.route_col)}</td><td>${escapeHtml(x.altn||'-')}</td><td>${escapeHtml(x.route_raw)}</td></tr>`).join('');
+  const samples = ['B','VH','UG','UK','WBA','WBS','WB','VV','VQ','Z'];
+  document.getElementById('chips').innerHTML = samples.map(s=>`<span class="chip" onclick="document.getElementById('q').value='${s}';runSearch();">${s}</span>`).join('');
+}
+function escapeHtml(str) { return String(str).replace(/[&<>'"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[s])); }
+document.getElementById('q').addEventListener('input', runSearch);
+document.getElementById('q').addEventListener('keydown', e => { if(e.key==='Enter') runSearch(); });
+fillTable(); runSearch();
+</script>
+</body>
+</html>
