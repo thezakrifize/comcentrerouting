@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BKK COM CENTRE Routing Search</title>
+  <style>
+    :root{--bg:#f6f8fb;--card:#ffffff;--ink:#172033;--muted:#657085;--blue:#1d4ed8;--cyan:#0e7490;--line:#d9e2ef;--soft:#edf5ff;--warn:#fff7ed;--green:#0f766e;--shadow:0 10px 30px rgba(15,23,42,.08);}
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,sans-serif;background:linear-gradient(135deg,#f8fafc,#eef6ff);color:var(--ink);}
+    header{padding:28px 18px 14px;max-width:1180px;margin:auto} h1{margin:0;font-size:clamp(24px,4vw,40px);letter-spacing:-.04em} .sub{color:var(--muted);margin-top:8px;line-height:1.55}
+    main{max-width:1180px;margin:auto;padding:14px 18px 40px;display:grid;gap:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:900px){.grid{grid-template-columns:1fr}}
+    .card{background:rgba(255,255,255,.88);border:1px solid rgba(217,226,239,.9);box-shadow:var(--shadow);border-radius:24px;padding:20px;backdrop-filter:blur(10px)}
+    .card h2{margin:0 0 12px;font-size:20px}.hint{font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.5} input{width:100%;border:1px solid var(--line);background:#fff;border-radius:16px;padding:14px 16px;font-size:18px;outline:none;transition:.2s} input:focus{border-color:#60a5fa;box-shadow:0 0 0 4px rgba(96,165,250,.18)}
+    .chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 11px;font-size:13px;cursor:pointer;color:#334155}.chip:hover{background:var(--soft);border-color:#bfdbfe}.count{font-size:13px;color:var(--muted);margin:10px 0 8px}
+    table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid var(--line);border-radius:16px;background:#fff} th,td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left} th{background:#f1f5f9;color:#334155;font-size:13px;position:sticky;top:0;z-index:1} tr:last-child td{border-bottom:0}.route-badge{display:inline-flex;align-items:center;gap:6px;margin:2px 4px 2px 0;padding:5px 9px;border-radius:999px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;font-weight:700;font-size:13px}.slot{font-size:11px;color:#64748b;font-weight:600}.mta{font-weight:800;color:var(--cyan)}.altn{font-weight:800;color:var(--green)}mark{background:#fef08a;padding:0 2px;border-radius:4px}.empty{padding:18px;border:1px dashed #cbd5e1;border-radius:16px;color:var(--muted);background:#f8fafc}.full{grid-column:1/-1}.small{font-size:12px;color:var(--muted);line-height:1.5}.pill{display:inline-block;border-radius:8px;padding:2px 7px;background:#f1f5f9;border:1px solid #e2e8f0;margin:1px 3px 1px 0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.footer{font-size:12px;color:var(--muted);text-align:center;padding:8px 0 0}
+  </style>
+</head>
+<body>
+<header><h1>BKK COM CENTRE Routing Search</h1><div class="sub">ค้นหาได้ 2 แบบ: <b>Route ↔ MTA/ALTN</b> และ <b>CODE ↔ COUNTRY</b> จากข้อมูลใน Excel</div></header>
+<main>
+  <section class="grid">
+    <div class="card"><h2>1) Search Route / MTA / ALTN</h2><div class="hint">พิมพ์ Route เช่น <b>B</b>, <b>C</b>, <b>K</b>, <b>WB</b> หรือพิมพ์ MTA/ALTN เช่น <b>VHHH</b>, <b>WSSS</b> เพื่อดู Route ที่เกี่ยวข้อง</div><input id="routingSearch" placeholder="พิมพ์ Route, MTA หรือ ALTN..." autocomplete="off"><div class="chips" id="routeChips"></div><div id="routingCount" class="count"></div><div id="routingResults"></div></div>
+    <div class="card"><h2>2) Search CODE / COUNTRY</h2><div class="hint">พิมพ์ตัวอักษรที่ตรงกับ CODE หรือเป็นส่วนหนึ่งของ CODE เช่น <b>V</b>, <b>VA</b>, <b>WS</b> หรือพิมพ์ชื่อประเทศ เช่น <b>INDIA</b>, <b>SINGAPORE</b></div><input id="countrySearch" placeholder="พิมพ์ CODE หรือ COUNTRY..." autocomplete="off"><div class="chips" id="codeChips"></div><div id="countryCount" class="count"></div><div id="countryResults"></div></div>
+  </section>
+  <section class="card full"><h2>ข้อมูล Route ทั้งหมด</h2><div id="allRouting"></div><p class="small">หมายเหตุ: Route ที่มีเงื่อนไข เช่น <b>U (Except UG UK)</b> หรือ <b>WB (Except WBA, WBS)</b> จะแสดงข้อความเงื่อนไขตามต้นฉบับ</p></section>
+  <div class="footer">Generated from: BKK COM CENTRE ROUTING TABLE copy.xlsx</div>
+</main>
+<script>
+const routingData = [
+  {
+    "mta": "VHHH",
+    "routes": [
+      {
+        "slot": 1,
+        "text": "B"
+      },
+      {
+        "slot": 2,
+        "text": "C"
+      },
+      {
+        "slot": 3,
+        "text": "K"
+      },
+      {
+        "slot": 4,
+        "text": "M"
+      },
+      {
+        "slot": 5,
+        "text": "P"
+      },
+      {
+        "slot": 6,
+        "text": "R"
+      },
+      {
+        "slot": 7,
+        "text": "S"
+      },
+      {
+        "slot": 8,
+        "text": "T"
+      },
+      {
+        "slot": 9,
+        "text": "VH"
+      },
+      {
+        "slot": 10,
+        "text": "VM"
+      }
+    ],
+    "altn": "WSSS"
+  },
+  {
+    "mta": "VHHH",
+    "routes": [
+      {
+        "slot": 1,
+        "text": "U (Except UG UK)"
+      }
+    ],
+    "altn": "VABB"
+  },
+  {
+    "mta": "WSSS",
+    "routes": [
+      {
+        "slot": 1,
+        "text": "A"
+      },
+      {
+        "slot": 2,
+        "text": "N"
+      },
+      {
+        "slot": 3,
+        "text": "O (Except OA, OP)"
+      },
+      {
+        "slot": 4,
+        "text": "VC"
+      },
+      {
+        "slot": 5,
+        "text": "VR"
+      },
+      {
+        "slot": 6,
+        "text": "W"
+      },
+      {
+        "slot": 7,
+        "text": "WBA"
+      },
+      {
+        "slot": 8,
+        "text": "WBS"
+      },
+      {
+        "slot": 9,
+        "text": "Y"
+      }
+    ],
+    "altn": "WMKK"
+  },
+  {
+    "mta": "WSSS",
+    "routes": [
+      {
+        "slot": 1,
+        "text": "Z"
+      }
+    ],
+    "altn": "VABB"
+  },
+  {
+    "mta": "VABB",
+    "routes": [
+      {
+        "slot": 1,
+        "text": "VA"
+      },
+      {
+        "slot": 2,
+        "text": "VE"
+      },
+      {
+        "slot": 3,
+        "text": "VI"
+      },
+      {
+        "slot": 4,
+        "text": "VN"
+      },
+      {
+        "slot": 5,
+        "text": "VO"
+      },
+      {
+        "slot": 6,
+        "text": "OA"
+      },
+      {
+        "slot": 7,
+        "text": "OP"
+      }
+    ],
+    "altn": "WSSS"
+  },
+  {
+    "mta": "ZBBB",
+    "routes": [
+      {
+        "slot": 1,
+        "text": "Z"
+      }
+    ],
+    "altn": "VHHH"
+  },
+  {
+    "mta": "VDPP",
+    "routes": [
+      {
+        "slot": 1,
+        "text": "VD"
+      }
+    ],
+    "altn": "VVTS"
+  },
+  {
+    "mta": "LIII",
+    "routes": [
+      {
+        "slot": 1,
+        "text": "E"
+      },
+      {
+        "slot": 2,
+        "text": "L"
+      },
+      {
+        "slot": 3,
+        "text": "UG"
+      },
+      {
+        "slot": 4,
+        "text": "UK"
+      }
+    ],
+    "altn": "WSSS"
+  },
+  {
+    "mta": "VVTS",
+    "routes": [
+      {
+        "slot": 1,
+        "text": "VV"
+      }
+    ],
+    "altn": "VHHH"
+  },
+  {
+    "mta": "VLVT",
+    "routes": [
+      {
+        "slot": 1,
+        "text": "VL"
+      }
+    ],
+    "altn": "VVTS"
+  },
+  {
+    "mta": "WMKK",
+    "routes": [
+      {
+        "slot": 1,
+        "text": "WB (Except WBA, WBS)"
+      },
+      {
+        "slot": 2,
+        "text": "WM"
+      }
+    ],
+    "altn": "WSSS"
+  },
+  {
+    "mta": "VGHS",
+    "routes": [
+      {
+        "slot": 1,
+        "text": "VG"
+      }
+    ],
+    "altn": "VABB"
+  },
+  {
+    "mta": "VYYY",
+    "routes": [
+      {
+        "slot": 1,
+        "text": "VY"
+      }
+    ],
+    "altn": "ZBBB"
+  },
+  {
+    "mta": "VQPR",
+    "routes": [
+      {
+        "slot": 1,
+        "text": "VQ"
+      }
+    ],
+    "altn": "VABB"
+  }
+];
+const countryData = [
+  {
+    "country": "INDIA",
+    "codes": [
+      "VA",
+      "VE",
+      "VI",
+      "VO"
+    ]
+  },
+  {
+    "country": "BANGLADESH",
+    "codes": [
+      "VG"
+    ]
+  },
+  {
+    "country": "BHUTAN",
+    "codes": [
+      "VQ"
+    ]
+  },
+  {
+    "country": "CAMBODIA",
+    "codes": [
+      "VD"
+    ]
+  },
+  {
+    "country": "LAO",
+    "codes": [
+      "VL"
+    ]
+  },
+  {
+    "country": "MALAYSIA",
+    "codes": [
+      "WM"
+    ]
+  },
+  {
+    "country": "VIETNAM",
+    "codes": [
+      "VV"
+    ]
+  },
+  {
+    "country": "CHINA",
+    "codes": [
+      "Z"
+    ]
+  },
+  {
+    "country": "DPRK",
+    "codes": [
+      "ZK"
+    ]
+  },
+  {
+    "country": "ANGOLA",
+    "codes": [
+      "FN"
+    ]
+  },
+  {
+    "country": "AUSTRALIA",
+    "codes": [
+      "Y"
+    ]
+  },
+  {
+    "country": "INDONESIA",
+    "codes": [
+      "W"
+    ]
+  },
+  {
+    "country": "SAUDI ARABIA",
+    "codes": [
+      "OE"
+    ]
+  },
+  {
+    "country": "SINGAPORE",
+    "codes": [
+      "WS"
+    ]
+  },
+  {
+    "country": "UAE",
+    "codes": [
+      "OM"
+    ]
+  },
+  {
+    "country": "BOLIVIA",
+    "codes": [
+      "SL"
+    ]
+  },
+  {
+    "country": "COLOMBIA",
+    "codes": [
+      "SK",
+      "SQ"
+    ]
+  },
+  {
+    "country": "CURACAO",
+    "codes": [
+      "TN"
+    ]
+  },
+  {
+    "country": "ECUADOR",
+    "codes": [
+      "SE"
+    ]
+  },
+  {
+    "country": "FRENCH GUIANA",
+    "codes": [
+      "SO"
+    ]
+  },
+  {
+    "country": "GREENLAND",
+    "codes": [
+      "BG"
+    ]
+  },
+  {
+    "country": "GUYANA",
+    "codes": [
+      "SY"
+    ]
+  },
+  {
+    "country": "HONGKONG",
+    "codes": [
+      "VH"
+    ]
+  },
+  {
+    "country": "ICELAND",
+    "codes": [
+      "BI"
+    ]
+  },
+  {
+    "country": "MACAO",
+    "codes": [
+      "VM"
+    ]
+  },
+  {
+    "country": "PANAMA",
+    "codes": [
+      "MP"
+    ]
+  },
+  {
+    "country": "PERU",
+    "codes": [
+      "SP"
+    ]
+  },
+  {
+    "country": "REP-KOREA",
+    "codes": [
+      "RK"
+    ]
+  },
+  {
+    "country": "RUSSIA",
+    "codes": [
+      "U"
+    ]
+  },
+  {
+    "country": "SURINAME",
+    "codes": [
+      "SM"
+    ]
+  },
+  {
+    "country": "URUGUAY",
+    "codes": [
+      "SU"
+    ]
+  },
+  {
+    "country": "ANSA BH",
+    "codes": [
+      "LQ"
+    ]
+  },
+  {
+    "country": "FRANCE",
+    "codes": [
+      "LF"
+    ]
+  },
+  {
+    "country": "AUSTRIA",
+    "codes": [
+      "LO"
+    ]
+  },
+  {
+    "country": "GERMANY",
+    "codes": [
+      "ED",
+      "ET"
+    ]
+  },
+  {
+    "country": "BELGIUM",
+    "codes": [
+      "EB"
+    ]
+  },
+  {
+    "country": "GREECE",
+    "codes": [
+      "LG"
+    ]
+  },
+  {
+    "country": "NORWAY",
+    "codes": [
+      "EN"
+    ]
+  },
+  {
+    "country": "CROATIA",
+    "codes": [
+      "LD"
+    ]
+  },
+  {
+    "country": "ISARAEL",
+    "codes": [
+      "LL"
+    ]
+  },
+  {
+    "country": "PORTUGAL",
+    "codes": [
+      "LP"
+    ]
+  },
+  {
+    "country": "CYPRUS",
+    "codes": [
+      "LC"
+    ]
+  },
+  {
+    "country": "ITALY",
+    "codes": [
+      "LI"
+    ]
+  },
+  {
+    "country": "ROMANIA",
+    "codes": [
+      "LR"
+    ]
+  },
+  {
+    "country": "DENMARK",
+    "codes": [
+      "EK"
+    ]
+  },
+  {
+    "country": "EUROPE",
+    "codes": [
+      "EUECX**"
+    ]
+  },
+  {
+    "country": "SERBIA",
+    "codes": [
+      "LY"
+    ]
+  },
+  {
+    "country": "SPAIN",
+    "codes": [
+      "GE",
+      "LE"
+    ]
+  },
+  {
+    "country": "FINLAND",
+    "codes": [
+      "EF"
+    ]
+  }
+];
+const norm = s => String(s ?? '').trim().toUpperCase();
+function escapeHtml(s){return String(s ?? '').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));}
+function highlight(s,q){const text=escapeHtml(s); q=norm(q); if(!q) return text; const re=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'ig'); return text.replace(re,m=>`<mark>${m}</mark>`)}
+function routeBase(routeText){return norm(routeText).split(/\s|\(/)[0];}
+function routeMatches(routeText, q){ const r=norm(routeText); const base=routeBase(routeText); return base===q || r.includes(q); }
+function makeRouteBadges(routes,q=''){return routes.map(r=>`<span class="route-badge"><span class="slot">R${r.slot}</span>${highlight(r.text,q)}</span>`).join('');}
+function renderRouting(rows,q=''){
+  if(!rows.length) return '<div class="empty">ไม่พบข้อมูลที่ตรงกับคำค้น</div>';
+  return `<table><thead><tr><th>MTA</th><th>Route 1-10</th><th>ALTN</th></tr></thead><tbody>${rows.map(x=>`<tr><td class="mta">${highlight(x.mta,q)}</td><td>${makeRouteBadges(x.routes,q)}</td><td class="altn">${highlight(x.altn,q)}</td></tr>`).join('')}</tbody></table>`;
+}
+function searchRouting(){
+ const q=norm(document.getElementById('routingSearch').value);
+ const rows = !q ? routingData : routingData.filter(x => norm(x.mta).includes(q) || norm(x.altn).includes(q) || x.routes.some(r=>routeMatches(r.text,q)) );
+ document.getElementById('routingCount').textContent = q ? `พบ ${rows.length} รายการ` : `แสดงทั้งหมด ${rows.length} รายการ`;
+ document.getElementById('routingResults').innerHTML=renderRouting(rows, q);
+}
+function renderCountries(rows,q=''){
+ if(!rows.length) return '<div class="empty">ไม่พบข้อมูลที่ตรงกับคำค้น</div>';
+ return `<table><thead><tr><th>COUNTRY</th><th>CODE 1</th><th>CODE 2</th><th>CODE 3</th><th>CODE 4</th></tr></thead><tbody>${rows.map(x=>`<tr><td><b>${highlight(x.country,q)}</b></td>${[0,1,2,3].map(i=>`<td>${x.codes[i]?`<span class="pill">${highlight(x.codes[i],q)}</span>`:''}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+function searchCountry(){
+ const q=norm(document.getElementById('countrySearch').value);
+ const rows = !q ? countryData : countryData.filter(x => norm(x.country).includes(q) || x.codes.some(c=>norm(c).includes(q)) );
+ document.getElementById('countryCount').textContent = q ? `พบ ${rows.length} ประเทศ` : `แสดงทั้งหมด ${rows.length} ประเทศ`;
+ document.getElementById('countryResults').innerHTML=renderCountries(rows, q);
+}
+function quickChips(){
+ const routeSet=[...new Set(routingData.flatMap(x=>x.routes.map(r=>routeBase(r.text))))].filter(Boolean).sort();
+ document.getElementById('routeChips').innerHTML=routeSet.slice(0,28).map(x=>`<button class="chip" data-v="${x}" data-target="routingSearch">${x}</button>`).join('');
+ const codeSet=[...new Set(countryData.flatMap(x=>x.codes))].filter(Boolean).sort();
+ document.getElementById('codeChips').innerHTML=codeSet.slice(0,28).map(x=>`<button class="chip" data-v="${x}" data-target="countrySearch">${x}</button>`).join('');
+ document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{const el=document.getElementById(b.dataset.target);el.value=b.dataset.v;el.dispatchEvent(new Event('input'));el.focus();}));
+}
+document.getElementById('routingSearch').addEventListener('input',searchRouting);
+document.getElementById('countrySearch').addEventListener('input',searchCountry);
+document.getElementById('allRouting').innerHTML=renderRouting(routingData);
+quickChips(); searchRouting(); searchCountry();
+</script>
+</body>
+</html>
